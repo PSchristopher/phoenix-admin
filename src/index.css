@@ -1,0 +1,141 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  /* Primary color for UI (keeps in sync with tailwind config default) */
+  --primary: #00488D;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+}
+
+body,
+p {
+  margin: 0;
+}
+
+.fade-in {
+  opacity: 1;
+  animation-name: fadeIn;
+  animation-iteration-count: 1;
+  animation-timing-function: ease-in;
+  animation-duration: 1s;
+}
+
+.icon-spin {
+  -webkit-animation: icon-spin 1s infinite linear;
+  animation: icon-spin 1s infinite linear;
+}
+
+.ant-pro-top-nav-header-logo > *:first-child,
+.ant-pro-sider-logo > a,
+.ant-pro-global-header-logo > a {
+  opacity: 60%;
+}
+
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@-webkit-keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@-webkit-keyframes icon-spin {
+  0% {
+    -webkit-transform: rotate(0deg);
+    transform: rotate(0deg);
+  }
+  100% {
+    -webkit-transform: rotate(359deg);
+    transform: rotate(359deg);
+  }
+}
+
+@keyframes icon-spin {
+  0% {
+    -webkit-transform: rotate(0deg);
+    transform: rotate(0deg);
+  }
+  100% {
+    -webkit-transform: rotate(359deg);
+    transform: rotate(359deg);
+  }
+}
+
+/* Add to your global CSS */
+.custom-pro-table .ant-pro-table-list-toolbar {
+  padding: 16px 24px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.custom-pro-table .ant-table {
+  background: transparent;
+}
+
+.custom-pro-table .ant-table-thead > tr > th {
+  background: #fafafa;
+  border-bottom: 1px solid #f0f0f0;
+  font-weight: 600;
+  color: #000;
+}
+
+.custom-pro-table .ant-table-tbody > tr > td {
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.custom-pro-table .ant-table-container {
+  border: none;
+}
+
+/* Sidebar / ProLayout menu overrides to use primary color, larger/bolder text, and white text on selected */
+.ant-pro-sider-menu .ant-menu-item,
+.ant-layout-sider .ant-menu-item {
+  font-weight: 700; /* bolder text */
+  font-size: 1rem; /* increase size slightly */
+  color: var(--primary); /* use primary color by default */
+}
+
+.ant-pro-sider-menu .ant-menu-item .anticon,
+.ant-pro-sider-menu .ant-menu-item svg {
+  color: inherit; /* inherit text color for icons */
+}
+
+/* Hover state: subtle primary tint and primary text color */
+.ant-pro-sider-menu .ant-menu-item:hover {
+  background-color: rgba(0, 72, 141, 0.06);
+  color: var(--primary);
+}
+
+/* Selected state: primary background and white text */
+.ant-pro-sider-menu .ant-menu-item-selected,
+.ant-layout-sider .ant-menu-item-selected {
+  background-color: var(--primary) !important;
+  color: #ffffff !important;
+}
+
+.ant-pro-sider-menu .ant-menu-item-selected .anticon,
+.ant-pro-sider-menu .ant-menu-item-selected svg {
+  color: #ffffff !important;
+}
+
+/* Ensure submenu titles/links get the same treatment */
+.ant-pro-sider-menu .ant-menu-submenu-title {
+  font-weight: 700;
+  font-size: 1rem;
+}
