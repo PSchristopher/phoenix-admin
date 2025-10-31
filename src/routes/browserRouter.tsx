@@ -12,6 +12,7 @@ import LoginPage from '@/pages/auth/loginPage';
 import ProductListPage from '@/pages/products/productListPage';
 import ProductDetailPage from '@/pages/products/productDetailPage';
 import VendorList from '@/pages/vendors/vendorsListPage';
+import VendorDetail from '@/pages/vendors/vendorDetailPage';
 
 const errorElement = <ErrorPage />;
 const fallbackElement = <ProgressBar />;
@@ -25,9 +26,12 @@ const UserListPage = loadable(() => import('@/pages/users/userListPage'), {
 const UserDetailPage = loadable(() => import('@/pages/users/userDetailPage'), {
   fallback: fallbackElement,
 });
-const OrderDetailsPage = loadable(() => import('@/pages/orders/orderDetailsPage'), {
-  fallback: fallbackElement,
-});
+const OrderDetailsPage = loadable(
+  () => import('@/pages/orders/orderDetailsPage'),
+  {
+    fallback: fallbackElement,
+  }
+);
 const AboutPage = loadable(() => import('@/pages/aboutPage'), {
   fallback: fallbackElement,
 });
@@ -95,6 +99,10 @@ export const browserRouter = createBrowserRouter([
       {
         path: webRoutes.about,
         element: <AboutPage />,
+      },
+      {
+        path: `${webRoutes.vendor}/:id`,
+        element: <VendorDetail />,
       },
     ],
   },

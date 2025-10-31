@@ -7,10 +7,14 @@ import {
   CheckCircle,
   XCircle,
   PlusCircleIcon,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
-import privateApi from '@/lib/http'; // or use your axios instance
+import privateApi from '@/lib/http';
 import dayjs from 'dayjs';
 import { Button } from 'antd';
+import { useNavigate } from 'react-router-dom';
+import { webRoutes } from '@/routes/web';
 
 interface Vendor {
   id: string;
@@ -35,11 +39,32 @@ interface Vendor {
   }[];
 }
 
+interface PaginationInfo {
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  itemsPerPage: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+}
+
+interface ApiResponse {
+  success: boolean;
+  data: Vendor[];
+  pagination: PaginationInfo;
+}
+
 const VendorList: React.FC = () => {
+  const navigate = useNavigate();
+
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [loading, setLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
+  const [pagination, setPagination] = useState<PaginationInfo | null>(null);
 
-  // Summary Stats
+  // Summary Stats - you might want to create a separate endpoint for this
   const stats = {
     pending: vendors.filter((v) => v.verification_status === 'pending').length,
     approved: vendors.filter((v) => v.verification_status === 'approved')
@@ -48,13 +73,29 @@ const VendorList: React.FC = () => {
       .length,
   };
 
-  // Fetch vendors from backend
-  const fetchVendors = async () => {
+  // Fetch vendors from backend with pagination and search
+  const fetchVendors = async (
+    page: number = currentPage,
+    search: string = searchTerm
+  ) => {
     setLoading(true);
     try {
-      const response = await privateApi.get('/admin/vendors'); // adjust API endpoint as per your backend
-      if (response.data?.success && Array.isArray(response.data.data)) {
+      const params: any = {
+        page,
+        limit: itemsPerPage,
+      };
+
+      if (search) {
+        params.search = search;
+      }
+
+      const response = await privateApi.get<ApiResponse>('/admin/vendors', {
+        params,
+      });
+
+      if (response.data?.success) {
         setVendors(response.data.data);
+        setPagination(response.data.pagination);
       }
     } catch (error) {
       console.error('Error fetching vendors:', error);
@@ -64,8 +105,46 @@ const VendorList: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchVendors();
+    fetchVendors(1);
   }, []);
+
+  // Handle search with debouncing
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      fetchVendors(1, searchTerm);
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm]);
+
+  // Handle page change
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    fetchVendors(page, searchTerm);
+  };
+
+  // Handle search input change
+  const handleSearch = (term: string) => {
+    setSearchTerm(term);
+    setCurrentPage(1);
+  };
+
+  // Pagination handlers
+  const goToNextPage = () => {
+    if (pagination?.hasNextPage) {
+      const nextPage = currentPage + 1;
+      setCurrentPage(nextPage);
+      fetchVendors(nextPage, searchTerm);
+    }
+  };
+
+  const goToPreviousPage = () => {
+    if (pagination?.hasPrevPage) {
+      const prevPage = currentPage - 1;
+      setCurrentPage(prevPage);
+      fetchVendors(prevPage, searchTerm);
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -110,6 +189,28 @@ const VendorList: React.FC = () => {
     }
   };
 
+  // Generate page numbers for pagination
+  const getPageNumbers = () => {
+    if (!pagination) return [];
+
+    const pages = [];
+    const maxVisiblePages = 5;
+    const { currentPage, totalPages } = pagination;
+
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+    const endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+    if (endPage - startPage + 1 < maxVisiblePages) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(i);
+    }
+
+    return pages;
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-7xl mx-auto">
@@ -124,13 +225,6 @@ const VendorList: React.FC = () => {
             </p>
           </div>
           <div className="flex items-center gap-6">
-            {/* <button
-              onClick={fetchVendors}
-              className="flex items-center gap-2 bg-primary-600 text-white px-3 py-2 rounded-lg hover:bg-primary-700 transition"
-            >
-              <RefreshCw className="w-4 h-4" /> Refresh
-            </button> */}
-
             <div className="flex gap-6">
               <div className="text-center">
                 <div className="text-sm text-primary mb-1 border-[2px] bg-gray-200 rounded p-2 border-black px-4">
@@ -148,12 +242,6 @@ const VendorList: React.FC = () => {
                   {stats.approved}
                 </div>
               </div>
-              {/* <div className="text-center border-1 border-gray-300 px-4">
-                <div className="text-sm text-gray-600 mb-1">SUBMITTED</div>
-                <div className="text-2xl font-semibold text-blue-600">
-                  {stats.submitted}
-                </div>
-              </div> */}
               <Button type="primary">
                 <PlusCircleIcon />
                 Onboard Manually
@@ -170,12 +258,13 @@ const VendorList: React.FC = () => {
                 type="text"
                 placeholder="Search by company name or GSTIN or contact"
                 className="w-1/3 px-3 py-2 p-2 bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                // onChange={(e) => handleSearch(e.target.value)} // Add your search handler
+                value={searchTerm}
+                onChange={(e) => handleSearch(e.target.value)}
               />
             </div>
             <Button
               type="primary"
-              onClick={fetchVendors}
+              onClick={() => fetchVendors(currentPage, searchTerm)}
               className="flex items-center gap-2 bg-primary text-white px-3 py-2 rounded-lg hover:bg-primary transition"
             >
               <RefreshCw className="w-4 h-4" /> Refresh
@@ -185,14 +274,15 @@ const VendorList: React.FC = () => {
             <thead className="bg-gray-100">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-                  Company
+                  Vendor Name
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-                  GST / Business Type
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                {/* <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
                   Contact
+                </th> */}
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                  Main Contact
                 </th>
+
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
                   Categories
                 </th>
@@ -215,18 +305,25 @@ const VendorList: React.FC = () => {
               ) : vendors.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-6 text-center text-gray-500">
-                    No vendors found
+                    {searchTerm
+                      ? 'No vendors match your search'
+                      : 'No vendors found'}
                   </td>
                 </tr>
               ) : (
                 vendors.map((v) => (
                   <tr key={v.id} className="hover:bg-gray-50 transition">
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                      {v.company_name}
+                    <td className="px-6 py-4 ">
+                      <p
+                        onClick={() => navigate(`${webRoutes.vendor}/${v.id}`)}
+                        className="text-primary text-sm font-medium hover:underline"
+                      >
+                        {v.company_name}
+                      </p>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-700">
+                    {/* <td className="px-6 py-4 text-sm text-gray-700">
                       {v.gst_number ? v.gst_number : v.business_type}
-                    </td>
+                    </td> */}
                     <td className="px-6 py-4 text-sm text-gray-700">
                       <div>{v.user.full_name}</div>
                       <div className="text-gray-500 text-xs">
@@ -261,6 +358,59 @@ const VendorList: React.FC = () => {
               )}
             </tbody>
           </table>
+
+          {/* Pagination */}
+          {pagination && pagination.totalPages > 1 && (
+            <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 bg-white">
+              <div className="text-sm text-gray-700">
+                Showing {(currentPage - 1) * itemsPerPage + 1} to{' '}
+                {Math.min(currentPage * itemsPerPage, pagination.totalItems)} of{' '}
+                {pagination.totalItems} results
+              </div>
+              <div className="flex items-center space-x-2">
+                {/* Previous Button */}
+                <button
+                  onClick={goToPreviousPage}
+                  disabled={!pagination.hasPrevPage}
+                  className={`p-2 rounded-lg border ${
+                    !pagination.hasPrevPage
+                      ? 'text-gray-400 cursor-not-allowed'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+
+                {/* Page Numbers */}
+                {getPageNumbers().map((page) => (
+                  <button
+                    key={page}
+                    onClick={() => handlePageChange(page)}
+                    className={`px-3 py-1 rounded-lg text-sm font-medium ${
+                      currentPage === page
+                        ? 'bg-primary text-white'
+                        : 'text-gray-700 hover:bg-gray-100'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+
+                {/* Next Button */}
+                <button
+                  onClick={goToNextPage}
+                  disabled={!pagination.hasNextPage}
+                  className={`p-2 rounded-lg border ${
+                    !pagination.hasNextPage
+                      ? 'text-gray-400 cursor-not-allowed'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
