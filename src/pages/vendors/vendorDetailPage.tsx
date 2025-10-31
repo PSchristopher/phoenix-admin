@@ -7,9 +7,9 @@ import {
   ChevronDown,
   ChevronUp,
 } from 'lucide-react';
-import { Button, message } from 'antd';
-import { CloseCircleOutlined, CheckCircleOutlined } from '@ant-design/icons';
-import privateApi from '@/lib/http'; // or use your axios instance
+import { Button, message, Modal } from 'antd';
+import { CloseCircleOutlined, CheckCircleOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
+import privateApi from '@/lib/http';
 import { useParams } from 'react-router-dom';
 
 interface Document {
@@ -108,6 +108,9 @@ const VendorDetail: React.FC = () => {
     Record<string, boolean>
   >({});
   const [internalNotes, setInternalNotes] = useState('');
+  const [approveModalVisible, setApproveModalVisible] = useState(false);
+  const [rejectModalVisible, setRejectModalVisible] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
 
   // Fetch vendor details
   const fetchVendorDetails = async () => {
@@ -147,25 +150,42 @@ const VendorDetail: React.FC = () => {
     }));
   };
 
+  const showApproveConfirm = () => {
+    setApproveModalVisible(true);
+  };
+
+  const showRejectConfirm = () => {
+    setRejectModalVisible(true);
+  };
+
   const handleApprove = async () => {
     try {
-      await privateApi.put(`/admin/vendors/${vendorId}/approve`);
+      setActionLoading(true);
+      await privateApi.put(`/admin/vendor/${vendorId}/approve`);
       message.success('Vendor approved successfully');
+      setApproveModalVisible(false);
       fetchVendorDetails(); // Refresh data
     } catch (error) {
       console.error('Error approving vendor:', error);
       message.error('Failed to approve vendor');
+    } finally {
+      setActionLoading(false);
     }
   };
 
   const handleReject = async () => {
     try {
-      await privateApi.put(`/admin/vendors/${vendorId}/reject`);
+      setActionLoading(true);
+      // Using GET request as per your API route
+      await privateApi.put(`/admin/vendor/${vendorId}/reject`);
       message.success('Vendor rejected successfully');
+      setRejectModalVisible(false);
       fetchVendorDetails(); // Refresh data
     } catch (error) {
       console.error('Error rejecting vendor:', error);
       message.error('Failed to reject vendor');
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -283,22 +303,76 @@ const VendorDetail: React.FC = () => {
                 type="primary"
                 danger
                 icon={<CloseCircleOutlined />}
-                onClick={handleReject}
+                onClick={showRejectConfirm}
                 className="flex items-center "
+                disabled={vendor.verification_status === 'rejected'}
               >
                 Reject & Send Feedback
               </Button>
               <Button
                 type="primary"
                 icon={<CheckCircleOutlined />}
-                onClick={handleApprove}
+                onClick={showApproveConfirm}
                 className="flex items-center "
+                disabled={vendor.verification_status === 'approved'}
               >
                 Approve Vendor
               </Button>
             </div>
           </div>
         </div>
+
+        {/* Approve Confirmation Modal */}
+        <Modal
+          title={
+            <div className="flex items-center gap-2">
+              <ExclamationCircleOutlined className="text-yellow-500" />
+              <span>Confirm Approval</span>
+            </div>
+          }
+          open={approveModalVisible}
+          onOk={handleApprove}
+          onCancel={() => setApproveModalVisible(false)}
+          confirmLoading={actionLoading}
+          okText="Yes, Approve"
+          cancelText="Cancel"
+          okType="primary"
+          className="confirmation-modal"
+        >
+          <div className="py-4">
+            <p>Are you sure you want to approve this vendor?</p>
+            <p className="font-semibold mt-2">{vendor.company_name}</p>
+            <p className="text-sm text-gray-600 mt-2">
+              This action will change the vendor's status to "Approved" and they will be able to access the platform.
+            </p>
+          </div>
+        </Modal>
+
+        {/* Reject Confirmation Modal */}
+        <Modal
+          title={
+            <div className="flex items-center gap-2">
+              <ExclamationCircleOutlined className="text-red-500" />
+              <span>Confirm Rejection</span>
+            </div>
+          }
+          open={rejectModalVisible}
+          onOk={handleReject}
+          onCancel={() => setRejectModalVisible(false)}
+          confirmLoading={actionLoading}
+          okText="Yes, Reject"
+          cancelText="Cancel"
+          okType="danger"
+          className="confirmation-modal"
+        >
+          <div className="py-4">
+            <p>Are you sure you want to reject this vendor?</p>
+            <p className="font-semibold mt-2">{vendor.company_name}</p>
+            <p className="text-sm text-gray-600 mt-2">
+              This action will change the vendor's status to "Rejected" and they will be notified about the rejection.
+            </p>
+          </div>
+        </Modal>
 
         <div className="grid grid-cols-3 gap-6">
           {/* Left Column - Main Content */}
