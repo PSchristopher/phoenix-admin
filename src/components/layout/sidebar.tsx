@@ -1,7 +1,9 @@
 import { webRoutes } from '@/routes/web';
 import { BiHomeAlt2 } from 'react-icons/bi';
 import Icon, { UserOutlined } from '@ant-design/icons';
-import { RiShoppingCartFill } from 'react-icons/ri';
+import { SiImprovmx } from 'react-icons/si';
+import { LiaUserSolid } from 'react-icons/lia';
+import { FiUsers } from 'react-icons/fi';
 
 export const sidebar = [
   {
@@ -14,19 +16,19 @@ export const sidebar = [
     path: webRoutes.users,
     key: webRoutes.users,
     name: 'Customers',
-    icon: <UserOutlined />,
+    icon: <FiUsers />,
   },
   {
     path: webRoutes.products,
     key: webRoutes.products,
     name: 'Products',
-    icon: <RiShoppingCartFill />,
+    icon: <SiImprovmx />,
   },
   {
     path: webRoutes.vendors,
     key: webRoutes.vendors,
     name: 'Vendors',
-    icon: <RiShoppingCartFill />,
+    icon: <LiaUserSolid />,
   },
   // {
   //   path: webRoutes.about,

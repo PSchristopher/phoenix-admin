@@ -80,7 +80,10 @@ const ProductListPage = () => {
   const handleSearch = (e) => {
     setSearchTerm(e.target.value);
   };
-
+  const handleStatusFilter = (status: string) => {
+    setFilters((prev) => ({ ...prev, status }));
+    setPagination((prev) => ({ ...prev, page: 1 })); // Reset to first page when filter changes
+  };
   const handleFilterChange = (filterType, value) => {
     setFilters((prev) => ({
       ...prev,
@@ -215,7 +218,7 @@ const ProductListPage = () => {
         key="prev"
         onClick={() => handlePageChange(currentPage - 1)}
         disabled={currentPage === 1}
-        className="p-2  rounded-lg  hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="p-2  border-0 rounded-lg  hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         <ChevronLeft size={18} />
       </button>
@@ -226,10 +229,10 @@ const ProductListPage = () => {
         <button
           key={1}
           onClick={() => handlePageChange(1)}
-          className={`px-4 py-2 rounded-lg text-sm font-medium ${
+          className={`px-4 py-2 rounded-lg text-sm font-medium border-2 border-primary ${
             currentPage === 1
               ? 'bg-white text-primary'
-              : 'border border-primary bg-white text-primary '
+              : ' bg-white text-primary '
           }`}
         >
           1
@@ -254,10 +257,10 @@ const ProductListPage = () => {
         <button
           key={i}
           onClick={() => handlePageChange(i)}
-          className={`px-4 py-2 rounded-lg text-sm font-medium ${
+          className={`px-4 py-2 rounded-lg text-sm font-medium border-2 border-primary${
             currentPage === i
               ? 'bg-white text-primary'
-              : 'border border-primary bg-white text-gray-700 hover:bg-gray-50'
+              : 'bg-white text-gray-700 hover:bg-gray-50'
           }`}
         >
           {i}
@@ -278,10 +281,10 @@ const ProductListPage = () => {
         <button
           key={totalPages}
           onClick={() => handlePageChange(totalPages)}
-          className={`px-4 py-2 rounded-lg text-sm font-medium ${
+          className={`px-4 py-2 rounded-lg text-sm font-medium border-2 border-primary ${
             currentPage === totalPages
               ? 'bg-white text-primary'
-              : 'border border-primary bg-white text-gray-700 hover:bg-gray-50'
+              : 'bg-white text-gray-700 hover:bg-gray-50'
           }`}
         >
           {totalPages}
@@ -294,7 +297,7 @@ const ProductListPage = () => {
         key="next"
         onClick={() => handlePageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
-        className="p-2 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="p-2  border-0  rounded-lg bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         <ChevronRight size={18} />
       </button>
@@ -304,11 +307,11 @@ const ProductListPage = () => {
   };
 
   const getProductImage = (product) => {
-    if (product.image || product.imageUrl || product.thumbnail) {
+    if (product.images) {
       return (
         <img
-          src={product.image || product.imageUrl || product.thumbnail}
-          alt={product.name}
+          src={product.images[0].image_url}
+          alt={product.product_name}
           className="w-10 h-10 rounded-lg object-cover"
         />
       );
@@ -372,8 +375,60 @@ const ProductListPage = () => {
           <p className="text-sm text-gray-500">Manage your product inventory</p>
         </div>
 
-        <div className="bg-white rounded-lg border border-gray-200 p-4 mb-4">
+        <div className="bg-white rounded-t-lg border border-gray-200 p-4 pb-6">
           <div className="flex items-center justify-between">
+            <div className="flex bg-blue border-md border-blue  rounded-lg p-2 gap-4 w-1/3">
+              <button
+                onClick={() => handleStatusFilter('')}
+                className={`px-4 py-2 text-sm font-medium rounded-md transition-colors border-0 w-1/4 ${
+                  filters.status === ''
+                    ? 'bg-primary text-white shadow-sm'
+                    : ' hover:text-gray-900'
+                }`}
+              >
+                All
+              </button>
+              <button
+                onClick={() => handleStatusFilter('pending')}
+                className={`px-4 py-2 text-sm font-medium rounded-md transition-colors border-0 w-1/4 ${
+                  filters.status === 'pending'
+                    ? 'bg-yellow-100 text-yellow-800 shadow-sm'
+                    : ' hover:text-gray-900'
+                }`}
+              >
+                Pending
+              </button>
+              <button
+                onClick={() => handleStatusFilter('approved')}
+                className={`px-4 py-2 text-sm font-medium rounded-md transition-colors border-0 w-1/4 ${
+                  filters.status === 'approved'
+                    ? 'bg-green-100 text-green-800 shadow-sm'
+                    : ' hover:text-gray-900'
+                }`}
+              >
+                Approved
+              </button>
+              <button
+                onClick={() => handleStatusFilter('rejected')}
+                className={`px-4 py-2 text-sm font-medium rounded-md transition-colors border-0 w-1/4 ${
+                  filters.status === 'rejected'
+                    ? 'bg-red-100 text-red-800 shadow-sm'
+                    : ' hover:text-gray-900'
+                }`}
+              >
+                Rejected
+              </button>
+              {/* <button
+      onClick={() => handleStatusFilter('draft')}
+      className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+        filters.status === 'draft'
+          ? 'bg-gray-200 text-gray-800 shadow-sm'
+          : 'text-gray-600 hover:text-gray-900'
+      }`}
+    >
+      Draft
+    </button> */}
+            </div>
             <div className="flex gap-3">
               <button className="inline-flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg bg-white text-gray-700 hover:bg-gray-50 text-sm font-medium">
                 <Download size={16} />
@@ -410,7 +465,7 @@ const ProductListPage = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+        <div className="bg-white border border-gray-200 overflow-hidden p-4">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
@@ -423,9 +478,9 @@ const ProductListPage = () => {
                       className="rounded border-gray-300"
                     />
                   </th> */}
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  {/* <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     ID
-                  </th>
+                  </th> */}
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Product
                   </th>
@@ -475,7 +530,7 @@ const ProductListPage = () => {
                           className="rounded border-gray-300"
                         />
                       </td> */}
-                      <td className="px-4 py-4">
+                      {/* <td className="px-4 py-4">
                         <p
                           onClick={() =>
                             navigate(`${webRoutes.products}/${product.id}`)
@@ -484,7 +539,7 @@ const ProductListPage = () => {
                         >
                           {product.id}
                         </p>
-                      </td>
+                      </td> */}
                       <td className="px-4 py-4">
                         <div className="flex items-center gap-3">
                           {getProductImage(product)}
@@ -494,7 +549,7 @@ const ProductListPage = () => {
                             }
                             className="text-sm font-medium text-gray-900 hover:text-primary"
                           >
-                            {product.name || product.title || '-'}
+                            {product.product_name || product.title || '-'}
                           </p>
                         </div>
                       </td>
@@ -529,12 +584,14 @@ const ProductListPage = () => {
           </div>
         </div>
 
-        <div className="mt-4 flex items-center justify-between">
+        <div className="rounded-b-lg  flex items-center justify-between bg-white p-4">
           <div className="text-sm text-gray-600">
             Total {pagination.total} items
           </div>
           <div className="flex items-center gap-2">
             {renderPaginationButtons()}
+          </div>
+          <div className="flex items-center gap-2">
             <select
               value={pagination.perPage}
               onChange={(e) => {
