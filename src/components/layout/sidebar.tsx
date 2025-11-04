@@ -30,6 +30,12 @@ export const sidebar = [
     name: 'Vendors',
     icon: <LiaUserSolid />,
   },
+  {
+    path: webRoutes.orders,
+    key: webRoutes.orders,
+    name: 'Orders',
+    icon: <LiaUserSolid />,
+  },
   // {
   //   path: webRoutes.about,
   //   key: webRoutes.about,

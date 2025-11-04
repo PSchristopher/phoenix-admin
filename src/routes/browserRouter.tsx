@@ -13,6 +13,7 @@ import ProductListPage from '@/pages/products/productListPage';
 import ProductDetailPage from '@/pages/products/productDetailPage';
 import VendorList from '@/pages/vendors/vendorsListPage';
 import VendorDetail from '@/pages/vendors/vendorDetailPage';
+import OrderListPage from '@/pages/orders/orderListPage';
 
 const errorElement = <ErrorPage />;
 const fallbackElement = <ProgressBar />;
@@ -103,6 +104,14 @@ export const browserRouter = createBrowserRouter([
       {
         path: `${webRoutes.vendor}/:id`,
         element: <VendorDetail />,
+      },
+      {
+        path: `${webRoutes.orders}`,
+        element: <OrderListPage />,
+      },
+      {
+        path: `${webRoutes.order}/:id`,
+        element: <OrderDetailsPage />,
       },
     ],
   },

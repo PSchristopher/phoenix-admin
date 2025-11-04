@@ -8,4 +8,6 @@ export const webRoutes = {
   vendor: '/vendor',
   about: '/about',
   vendors: '/vendors',
+  orders: '/orders',
+  order: '/order',
 };
