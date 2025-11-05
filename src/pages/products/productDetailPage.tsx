@@ -1,13 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Input,
-  Button,
-  message,
-  Spin,
-  Switch,
-  Modal,
-  Tag,
-} from 'antd';
+import { Input, Button, message, Spin, Switch, Modal, Tag, Card } from 'antd';
 import {
   CheckOutlined,
   CloseOutlined,
@@ -39,7 +31,6 @@ const ProductDetailPage: React.FC = () => {
         setProductData(data);
         setProductStatus(data.status === 'approved');
         setRejectionFeedback(data.rejection_reasons || '');
-
       } catch (err) {
         console.error('Error fetching product data:', err);
         message.error('Failed to load product data');
@@ -122,10 +113,14 @@ const ProductDetailPage: React.FC = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'approved': return 'green';
-      case 'rejected': return 'red';
-      case 'draft': return 'orange';
-      default: return 'blue';
+      case 'approved':
+        return 'green';
+      case 'rejected':
+        return 'red';
+      case 'draft':
+        return 'orange';
+      default:
+        return 'blue';
     }
   };
 
@@ -187,16 +182,22 @@ const ProductDetailPage: React.FC = () => {
                 <label className="text-sm font-medium">Description</label>
                 <TextArea value={productData.description} readOnly rows={4} />
               </div>
-              
+
               {/* Category and Subcategory */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium">Category</label>
-                  <Input value={productData.category?.category_name || '-'} readOnly />
+                  <Input
+                    value={productData.category?.category_name || '-'}
+                    readOnly
+                  />
                 </div>
                 <div>
                   <label className="text-sm font-medium">Sub Category</label>
-                  <Input value={productData.subcategory?.subcategory_name || '-'} readOnly />
+                  <Input
+                    value={productData.subcategory?.subcategory_name || '-'}
+                    readOnly
+                  />
                 </div>
               </div>
 
@@ -222,9 +223,6 @@ const ProductDetailPage: React.FC = () => {
                     src={image.image_url}
                     alt="Product"
                     className="w-32 h-32 rounded-lg object-cover shadow-md border border-gray-200 hover:scale-105 transition-transform duration-300"
-                    // onError={(e) => {
-                    //   e.currentTarget.src = 'https://via.placeholder.com/150?text=Image+Not+Found';
-                    // }}
                   />
                 ))
               ) : (
@@ -243,27 +241,102 @@ const ProductDetailPage: React.FC = () => {
             </div>
 
             {productData.variants && productData.variants.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse">
-                  <thead>
-                    <tr className="border-b bg-gray-50">
-                      <th className="text-left p-3 font-medium">Option Name</th>
-                      <th className="text-left p-3 font-medium">Option Value</th>
-                      <th className="text-left p-3 font-medium">Price</th>
-                      <th className="text-left p-3 font-medium">Stock Available</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {productData.variants.map((variant: any) => (
-                      <tr key={variant.id} className="border-b hover:bg-gray-50">
-                        <td className="p-3">{variant.option_name}</td>
-                        <td className="p-3">{variant.option_value}</td>
-                        <td className="p-3">{formatPrice(variant.price_cents)}</td>
-                        <td className="p-3">{variant.available}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {productData.variants.map((variant: any) => {
+                  const hasImages =
+                    variant.variant_images && variant.variant_images.length > 0;
+
+                  return (
+                    <Card
+                      key={variant.id}
+                      className="border border-gray-200 hover:shadow-lg transition-shadow duration-300"
+                      bodyStyle={{ padding: '16px' }}
+                    >
+                      {/* Variant Images Carousel */}
+                      <div className="flex justify-center mb-3">
+                        {hasImages ? (
+                          <div className="relative">
+                            <img
+                              src={variant.variant_images[0].image_url}
+                              alt={`${variant.option_name} - ${variant.option_value}`}
+                              className="w-20 h-20 rounded-lg object-cover border border-gray-200"
+                            />
+                            {/* Image counter badge */}
+                            {variant.variant_images.length > 1 && (
+                              <div className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                                {variant.variant_images.length}
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="w-20 h-20 rounded-lg bg-gray-100 border border-gray-200 flex items-center justify-center">
+                            <span className="text-gray-400 text-xs text-center">
+                              No Image
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Variant Details */}
+                      <div className="space-y-2">
+                        <div className="text-center">
+                          <h3 className="font-medium text-gray-800 capitalize">
+                            {variant.option_name}
+                          </h3>
+                          <p className="text-sm text-gray-600 capitalize">
+                            {variant.option_value}
+                          </p>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          <div className="text-left">
+                            <span className="text-gray-500">Price:</span>
+                          </div>
+                          <div className="text-right font-semibold">
+                            {formatPrice(variant.price_cents)}
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          <div className="text-left">
+                            <span className="text-gray-500">Stock:</span>
+                          </div>
+                          <div className="text-right">
+                            <Tag
+                              color={variant.available > 0 ? 'green' : 'red'}
+                              className="m-0"
+                            >
+                              {variant.available > 0
+                                ? `${variant.available} available`
+                                : 'Out of stock'}
+                            </Tag>
+                          </div>
+                        </div>
+
+                        {variant.sku && (
+                          <div className="grid grid-cols-2 gap-2 text-sm">
+                            <div className="text-left">
+                              <span className="text-gray-500">SKU:</span>
+                            </div>
+                            <div className="text-right font-mono text-xs">
+                              {variant.sku}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Image count info */}
+                        {hasImages && (
+                          <div className="text-center pt-2 border-t border-gray-100">
+                            <span className="text-xs text-gray-500">
+                              {variant.variant_images.length} image
+                              {variant.variant_images.length !== 1 ? 's' : ''}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </Card>
+                  );
+                })}
               </div>
             ) : (
               <div className="text-gray-500 text-center py-4">
@@ -279,15 +352,18 @@ const ProductDetailPage: React.FC = () => {
           <div className="bg-white p-6 rounded-lg shadow">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold">Product Status</h2>
-              <Tag color={getStatusColor(productData.status)} className="capitalize">
+              <Tag
+                color={getStatusColor(productData.status)}
+                className="capitalize"
+              >
                 {productData.status}
               </Tag>
             </div>
-            
+
             <div className="space-y-3">
               <div>
                 <label className="text-sm font-medium">Rejection Reasons</label>
-                <TextArea 
+                <TextArea
                   value={rejectionFeedback}
                   onChange={(e) => setRejectionFeedback(e.target.value)}
                   rows={3}
@@ -295,7 +371,7 @@ const ProductDetailPage: React.FC = () => {
                   className="mt-1"
                 />
               </div>
-              
+
               <div className="flex flex-col gap-2 mt-4">
                 <Button
                   type="primary"
@@ -303,7 +379,9 @@ const ProductDetailPage: React.FC = () => {
                   onClick={showApproveConfirm}
                   disabled={productData.status === 'approved'}
                 >
-                  {productData.status === 'approved' ? 'Already Approved' : 'Approve Product'}
+                  {productData.status === 'approved'
+                    ? 'Already Approved'
+                    : 'Approve Product'}
                 </Button>
                 <Button
                   danger
@@ -311,7 +389,9 @@ const ProductDetailPage: React.FC = () => {
                   onClick={showRejectConfirm}
                   disabled={productData.status === 'rejected'}
                 >
-                  {productData.status === 'rejected' ? 'Already Rejected' : 'Reject Product'}
+                  {productData.status === 'rejected'
+                    ? 'Already Rejected'
+                    : 'Reject Product'}
                 </Button>
               </div>
             </div>
@@ -337,16 +417,19 @@ const ProductDetailPage: React.FC = () => {
                 <label className="text-sm font-medium">Compare At Price</label>
                 <Input
                   prefix="₹"
-                  value={productData.compare_at_price_cents ? formatPrice(productData.compare_at_price_cents) : 'Not set'}
+                  value={
+                    productData.compare_at_price_cents
+                      ? formatPrice(productData.compare_at_price_cents)
+                      : 'Not set'
+                  }
                   readOnly
                 />
               </div>
               <div>
-                <label className="text-sm font-medium">Total Stock Quantity</label>
-                <Input
-                  value={productData.stock_quantity}
-                  readOnly
-                />
+                <label className="text-sm font-medium">
+                  Total Stock Quantity
+                </label>
+                <Input value={productData.stock_quantity} readOnly />
               </div>
               <div>
                 <label className="text-sm font-medium">Currency</label>
@@ -361,18 +444,18 @@ const ProductDetailPage: React.FC = () => {
             <div className="space-y-4">
               <div>
                 <label className="text-sm font-medium">Meta Title</label>
-                <Input 
-                  value={productData.meta_title || 'Not set'} 
-                  readOnly 
+                <Input
+                  value={productData.meta_title || 'Not set'}
+                  readOnly
                   placeholder="No meta title provided"
                 />
               </div>
               <div>
                 <label className="text-sm font-medium">Meta Description</label>
-                <TextArea 
-                  value={productData.meta_description || 'Not set'} 
-                  rows={3} 
-                  readOnly 
+                <TextArea
+                  value={productData.meta_description || 'Not set'}
+                  rows={3}
+                  readOnly
                   placeholder="No meta description provided"
                 />
               </div>
@@ -399,10 +482,12 @@ const ProductDetailPage: React.FC = () => {
                 <Input value={productData.vendor?.gst_number} readOnly />
               </div>
               <div>
-                <label className="text-sm font-medium">Verification Status</label>
-                <Input 
-                  value={productData.vendor?.verification_status} 
-                  readOnly 
+                <label className="text-sm font-medium">
+                  Verification Status
+                </label>
+                <Input
+                  value={productData.vendor?.verification_status}
+                  readOnly
                   className="capitalize"
                 />
               </div>

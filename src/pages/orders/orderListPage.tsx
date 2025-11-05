@@ -336,7 +336,7 @@ const OrderListPage = () => {
         {/* Tabs */}
         <div className="bg-white rounded-t-lg border border-gray-200 p-4 pb-6">
           {/* Tabs Section */}
-          <div className="flex bg-gray-100 rounded-lg p-1 gap-1 w-1/2">
+          <div className="flex  rounded-lg p-1 gap-1 w-1/2">
             <button
               onClick={() => handleTabClick('all')}
               className={`px-4 py-2 text-sm font-medium rounded-md transition-colors border-0 flex-1 ${
@@ -497,7 +497,8 @@ const OrderListPage = () => {
                     {formatDate(order.created_at)}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-900">
-                    {order.customer.first_name} {order.customer.last_name}
+                    {console.log(order.customer , 'hhsdhshhsh')}
+                    {order?.customer?.first_name} {order?.customer?.last_name}
                   </td>
                   <td className="px-6 py-4 text-sm font-medium text-gray-900">
                     {formatCurrency(order.total_price, order.currency)}
