@@ -229,8 +229,8 @@ const ProductListPage = () => {
   };
 
   const formatPrice = (price) => {
-    if (!price && price !== 0) return '$0.00';
-    return `$${parseFloat(price).toFixed(2)}`;
+    if (!price && price !== 0) return '₹0.00';
+    return `₹${parseFloat(price).toFixed(2)}`;
   };
 
   const handlePageChange = (newPage) => {
@@ -585,7 +585,7 @@ const ProductListPage = () => {
                         </div>
                       </td>
                       <td className="px-4 py-4 text-sm font-semibold text-gray-900">
-                        {formatPrice(product.price)}
+                        {formatPrice(product.price_cents)}
                       </td>
                       <td className="px-4 py-4 text-sm text-gray-600">
                         {product.brand || '-'}
