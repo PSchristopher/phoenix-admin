@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { webRoutes } from '@/routes/web';
 import {
@@ -17,12 +17,21 @@ import {
 } from 'lucide-react';
 import privateApi from '@/lib/http';
 import { TbDotsVertical } from 'react-icons/tb';
+interface Filters {
+  status: string;
+  stock: string;
+  category: string;
+  price_min: string;
+  price_max: string;
+  date_from: string;
+  date_to: string;
+}
 
 const ProductListPage = () => {
   const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectAll, setSelectAll] = useState(false);
   const [pagination, setPagination] = useState({
@@ -31,51 +40,73 @@ const ProductListPage = () => {
     perPage: 10,
     totalPages: 1,
   });
-  const [filters, setFilters] = useState({
+  const [filters, setFilters] = useState<Filters>({
     status: '',
     stock: '',
+    category: '',
+    price_min: '',
+    price_max: '',
+    date_from: '',
+    date_to: '',
   });
 
   // Fetch products from API
-  const fetchProducts = async (page = pagination.page) => {
-    try {
-      setLoading(true);
-      setError(null);
+  const fetchProducts = useCallback(
+    async (page = 1) => {
+      try {
+        setLoading(true);
+        setError(null);
 
-      const params = new URLSearchParams();
-      if (searchTerm) params.append('search', searchTerm);
-      if (filters.status) params.append('status', filters.status);
-      if (filters.stock) params.append('stock', filters.stock);
-      params.append('page', page);
-      params.append('perPage', pagination.perPage);
+        const params = new URLSearchParams();
 
-      const response = await privateApi.get(
-        `/admin/products?${params.toString()}`
-      );
+        // Add search term
+        if (searchTerm) params.append('search', searchTerm);
 
-      setProducts(response.data.data || []);
-      setPagination(
-        response.data.pagination || {
-          total: response.data.data?.length || 0,
-          page: page,
-          perPage: 10,
-          totalPages: Math.ceil((response.data.data?.length || 0) / 10),
+        // Add all filters
+        Object.entries(filters).forEach(([key, value]) => {
+          if (value) params.append(key, value);
+        });
+
+        // Add pagination
+        params.append('page', page.toString());
+        params.append('perPage', pagination.perPage.toString());
+
+        const response = await privateApi.get(
+          `/admin/products?${params.toString()}`
+        );
+
+        console.log(response.data, 'jhddjdjjdj');
+        if (response.status === 200) {
+          setProducts(response.data.data || []);
+          setPagination(
+            response.data.pagination || {
+              total: response.data.data?.length || 0,
+              page: page,
+              perPage: pagination.perPage,
+              totalPages: Math.ceil(
+                (response.data.data?.length || 0) / pagination.perPage
+              ),
+            }
+          );
         }
-      );
-    } catch (err) {
-      setError('Failed to fetch products. Please try again.');
-      console.error('Error fetching products:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+      } catch (err) {
+        setError('Failed to fetch products. Please try again.');
+        console.error('Error fetching products:', err);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [searchTerm, filters, pagination.perPage]
+  );
 
+  // Search and filter with debouncing
   useEffect(() => {
     const timer = setTimeout(() => {
       fetchProducts(1);
-    }, 300);
+    }, 500); // Increased debounce time for better performance
+
     return () => clearTimeout(timer);
-  }, [searchTerm, filters]);
+  }, [fetchProducts]);
 
   const handleSearch = (e) => {
     setSearchTerm(e.target.value);

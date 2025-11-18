@@ -61,10 +61,10 @@ const VendorList: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [pagination, setPagination] = useState<PaginationInfo | null>(null);
 
-  // Summary Stats - you might want to create a separate endpoint for this
+  // Summary Stats
   const stats = {
     pending: vendors.filter((v) => v.verification_status === 'pending').length,
     approved: vendors.filter((v) => v.verification_status === 'approved')
@@ -76,13 +76,14 @@ const VendorList: React.FC = () => {
   // Fetch vendors from backend with pagination and search
   const fetchVendors = async (
     page: number = currentPage,
-    search: string = searchTerm
+    search: string = searchTerm,
+    limit: number = itemsPerPage
   ) => {
     setLoading(true);
     try {
       const params: any = {
         page,
-        limit: itemsPerPage,
+        limit,
       };
 
       if (search) {
@@ -112,7 +113,7 @@ const VendorList: React.FC = () => {
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       fetchVendors(1, searchTerm);
-    }, 500); // 500ms debounce
+    }, 500);
 
     return () => clearTimeout(timeoutId);
   }, [searchTerm]);
@@ -127,6 +128,13 @@ const VendorList: React.FC = () => {
   const handleSearch = (term: string) => {
     setSearchTerm(term);
     setCurrentPage(1);
+  };
+
+  // Handle items per page change
+  const handleItemsPerPageChange = (perPage: number) => {
+    setItemsPerPage(perPage);
+    setCurrentPage(1);
+    fetchVendors(1, searchTerm, perPage);
   };
 
   // Pagination handlers
@@ -144,6 +152,79 @@ const VendorList: React.FC = () => {
       setCurrentPage(prevPage);
       fetchVendors(prevPage, searchTerm);
     }
+  };
+
+  // Generate page numbers for pagination
+  const getPageNumbers = () => {
+    if (!pagination) return [];
+
+    const pages = [];
+    const maxVisiblePages = 5;
+    const { currentPage, totalPages } = pagination;
+
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+    const endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+    if (endPage - startPage + 1 < maxVisiblePages) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(i);
+    }
+
+    return pages;
+  };
+
+  // Render pagination buttons
+  const renderPaginationButtons = () => {
+    if (!pagination) return null;
+
+    return (
+      <>
+        {/* Previous Button */}
+        <button
+          onClick={goToPreviousPage}
+          disabled={!pagination.hasPrevPage}
+          className={`p-2 rounded-lg border-0 ${
+            !pagination.hasPrevPage
+              ? 'text-gray-400 cursor-not-allowed'
+              : 'text-gray-700 hover:bg-gray-100'
+          }`}
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+
+        {/* Page Numbers */}
+        {getPageNumbers().map((page) => (
+          <Button
+            key={page}
+            type="default"
+            onClick={() => handlePageChange(page)}
+            className={`px-3 py-1 rounded-lg text-sm font-medium ${
+              currentPage === page
+                ? ' text-primary border-primary border-2'
+                : 'text-gray-700 hover:bg-gray-100'
+            }`}
+          >
+            {page}
+          </Button>
+        ))}
+
+        {/* Next Button */}
+        <button
+          onClick={goToNextPage}
+          disabled={!pagination.hasNextPage}
+          className={`p-2 rounded-lg border-0 ${
+            !pagination.hasNextPage
+              ? 'text-gray-400 cursor-not-allowed'
+              : 'text-gray-700 hover:bg-gray-100'
+          }`}
+        >
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      </>
+    );
   };
 
   const getStatusColor = (status: string) => {
@@ -189,28 +270,6 @@ const VendorList: React.FC = () => {
     }
   };
 
-  // Generate page numbers for pagination
-  const getPageNumbers = () => {
-    if (!pagination) return [];
-
-    const pages = [];
-    const maxVisiblePages = 5;
-    const { currentPage, totalPages } = pagination;
-
-    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
-    const endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-
-    if (endPage - startPage + 1 < maxVisiblePages) {
-      startPage = Math.max(1, endPage - maxVisiblePages + 1);
-    }
-
-    for (let i = startPage; i <= endPage; i++) {
-      pages.push(i);
-    }
-
-    return pages;
-  };
-
   return (
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-7xl mx-auto">
@@ -225,19 +284,17 @@ const VendorList: React.FC = () => {
             </p>
           </div>
           <div className="flex items-center gap-6">
-            <div className="flex gap-6">
-              <div className="text-center">
-                <div className="text-sm text-primary mb-1 border-[2px] bg-gray-200 rounded p-2 border-black px-4">
+            <div className="flex gap-6 items-center">
+              <div className="text-center border-[2px] bg-gray-200 rounded p-2 border-black">
+                <div className="text-sm text-primary mb-1  px-4">
                   TOTAL PENDING
                 </div>
                 <div className="text-xl font-semibold text-yellow-600">
                   {stats.pending}
                 </div>
               </div>
-              <div className="text-center">
-                <div className="text-sm text-primary mb-1 border-1 bg-gray-200 rounded p-2 border-black px-4">
-                  APPROVED
-                </div>
+              <div className="text-center border-1 bg-gray-200 rounded p-2 border-black">
+                <div className="text-sm text-primary mb-1  px-4">APPROVED</div>
                 <div className="text-2xl font-semibold text-green-600">
                   {stats.approved}
                 </div>
@@ -257,17 +314,16 @@ const VendorList: React.FC = () => {
               <input
                 type="text"
                 placeholder="Search by company name or GSTIN or contact"
-                className="w-1/3 px-3 py-2 p-2 bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                className="w-1/3 p-4 text-l  bg-gray-100 border-0 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                 value={searchTerm}
                 onChange={(e) => handleSearch(e.target.value)}
               />
             </div>
             <Button
-              type="primary"
               onClick={() => fetchVendors(currentPage, searchTerm)}
-              className="flex items-center gap-2 bg-primary text-white px-3 py-2 rounded-lg hover:bg-primary transition"
+              className="flex items-center gap-2 bg-gray-300  text-black px-3 py-2 rounded-lg hover:bg-primary transition"
             >
-              <RefreshCw className="w-4 h-4" /> Refresh
+              <RefreshCw className="w-4 h-4" />
             </Button>
           </div>
           <table className="min-w-full divide-y divide-gray-200">
@@ -276,13 +332,9 @@ const VendorList: React.FC = () => {
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
                   Vendor Name
                 </th>
-                {/* <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-                  Contact
-                </th> */}
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
                   Main Contact
                 </th>
-
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
                   Categories
                 </th>
@@ -298,13 +350,13 @@ const VendorList: React.FC = () => {
             <tbody className="divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="py-6 text-center text-gray-500">
+                  <td colSpan={6} className="py-6 text-center text-gray-500">
                     Loading vendor data...
                   </td>
                 </tr>
               ) : vendors.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-6 text-center text-gray-500">
+                  <td colSpan={6} className="py-6 text-center text-gray-500">
                     {searchTerm
                       ? 'No vendors match your search'
                       : 'No vendors found'}
@@ -316,14 +368,11 @@ const VendorList: React.FC = () => {
                     <td className="px-6 py-4 ">
                       <p
                         onClick={() => navigate(`${webRoutes.vendor}/${v.id}`)}
-                        className="text-primary text-sm font-medium hover:underline"
+                        className="text-primary text-sm font-medium hover:underline cursor-pointer"
                       >
                         {v.company_name}
                       </p>
                     </td>
-                    {/* <td className="px-6 py-4 text-sm text-gray-700">
-                      {v.gst_number ? v.gst_number : v.business_type}
-                    </td> */}
                     <td className="px-6 py-4 text-sm text-gray-700">
                       <div>{v.user.full_name}</div>
                       <div className="text-gray-500 text-xs">
@@ -359,55 +408,32 @@ const VendorList: React.FC = () => {
             </tbody>
           </table>
 
-          {/* Pagination */}
-          {pagination && pagination.totalPages > 1 && (
-            <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 bg-white">
+          {/* Pagination Footer */}
+          {pagination && (
+            <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 bg-gray-100">
               <div className="text-sm text-gray-700">
                 Showing {(currentPage - 1) * itemsPerPage + 1} to{' '}
                 {Math.min(currentPage * itemsPerPage, pagination.totalItems)} of{' '}
                 {pagination.totalItems} results
               </div>
-              <div className="flex items-center space-x-2">
-                {/* Previous Button */}
-                <button
-                  onClick={goToPreviousPage}
-                  disabled={!pagination.hasPrevPage}
-                  className={`p-2 rounded-lg border ${
-                    !pagination.hasPrevPage
-                      ? 'text-gray-400 cursor-not-allowed'
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
 
-                {/* Page Numbers */}
-                {getPageNumbers().map((page) => (
-                  <button
-                    key={page}
-                    onClick={() => handlePageChange(page)}
-                    className={`px-3 py-1 rounded-lg text-sm font-medium ${
-                      currentPage === page
-                        ? 'bg-primary text-white'
-                        : 'text-gray-700 hover:bg-gray-100'
-                    }`}
-                  >
-                    {page}
-                  </button>
-                ))}
+              <div className="flex items-center gap-2">
+                {renderPaginationButtons()}
+              </div>
 
-                {/* Next Button */}
-                <button
-                  onClick={goToNextPage}
-                  disabled={!pagination.hasNextPage}
-                  className={`p-2 rounded-lg border ${
-                    !pagination.hasNextPage
-                      ? 'text-gray-400 cursor-not-allowed'
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
+              <div className="flex items-center gap-2">
+                <select
+                  value={itemsPerPage}
+                  onChange={(e) =>
+                    handleItemsPerPageChange(Number(e.target.value))
+                  }
+                  className="px-3 py-2 border border-gray-200 rounded-lg text-sm"
                 >
-                  <ChevronRight className="w-4 h-4" />
-                </button>
+                  <option value={10}>10 / page</option>
+                  <option value={25}>25 / page</option>
+                  <option value={50}>50 / page</option>
+                  <option value={100}>100 / page</option>
+                </select>
               </div>
             </div>
           )}

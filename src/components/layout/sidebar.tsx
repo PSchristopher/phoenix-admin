@@ -13,10 +13,10 @@ export const sidebar = [
     icon: <Icon component={BiHomeAlt2} />,
   },
   {
-    path: webRoutes.users,
-    key: webRoutes.users,
-    name: 'Customers',
-    icon: <FiUsers />,
+    path: webRoutes.vendors,
+    key: webRoutes.vendors,
+    name: 'Vendors',
+    icon: <LiaUserSolid />,
   },
   {
     path: webRoutes.products,
@@ -25,11 +25,12 @@ export const sidebar = [
     icon: <SiImprovmx />,
   },
   {
-    path: webRoutes.vendors,
-    key: webRoutes.vendors,
-    name: 'Vendors',
-    icon: <LiaUserSolid />,
+    path: webRoutes.users,
+    key: webRoutes.users,
+    name: 'Customers',
+    icon: <FiUsers />,
   },
+
   {
     path: webRoutes.orders,
     key: webRoutes.orders,
