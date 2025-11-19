@@ -88,7 +88,7 @@ const UserDetailPage: React.FC = () => {
     {
       key: '1',
       label: 'Order Details',
-      children: <OrderDetailsPage customerId={id} />,
+      children: <OrderDetailsPage />,
     },
     {
       key: '2',

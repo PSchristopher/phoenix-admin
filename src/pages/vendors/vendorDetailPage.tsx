@@ -8,7 +8,11 @@ import {
   ChevronUp,
 } from 'lucide-react';
 import { Button, message, Modal } from 'antd';
-import { CloseCircleOutlined, CheckCircleOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
+import {
+  CloseCircleOutlined,
+  CheckCircleOutlined,
+  ExclamationCircleOutlined,
+} from '@ant-design/icons';
 import privateApi from '@/lib/http';
 import { useParams } from 'react-router-dom';
 
@@ -17,6 +21,8 @@ interface Document {
   size: number;
   filename: string;
   mimetype: string;
+  isValid?: boolean;
+  documentId?: string;
 }
 
 interface BankDetails {
@@ -37,6 +43,7 @@ interface UploadedDocument {
   file_size: number;
   created_at: string;
   updated_at: string;
+  isValid?: boolean;
 }
 
 interface Subcategory {
@@ -101,7 +108,6 @@ interface ApiResponse {
 const VendorDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const vendorId = id;
-  console.log('Vendor ID:', vendorId);
   const [vendor, setVendor] = useState<VendorData | null>(null);
   const [loading, setLoading] = useState(true);
   const [expandedSections, setExpandedSections] = useState<
@@ -143,6 +149,77 @@ const VendorDetail: React.FC = () => {
     }
   }, [vendorId]);
 
+  // API call to mark document as valid/invalid
+  const updateDocumentStatus = async (
+    documentId: string,
+    isValid: boolean,
+    documentType: string
+  ) => {
+    try {
+      await privateApi.put(
+        `/admin/vendor/${vendorId}/documents/${documentId}/status`,
+        {
+          isValid,
+          documentType,
+        }
+      );
+
+      message.success(`Document marked as ${isValid ? 'valid' : 'invalid'}`);
+
+      // Update local state
+      setVendor((prevVendor) => {
+        if (!prevVendor) return prevVendor;
+
+        const updatedVendor = { ...prevVendor };
+
+        // Update in documents array
+        if (updatedVendor.documents) {
+          updatedVendor.documents = updatedVendor.documents.map((doc) =>
+            doc.documentId === documentId ? { ...doc, isValid } : doc
+          );
+        }
+
+        // Update in bank documents
+        if (updatedVendor.bank_details?.documents) {
+          updatedVendor.bank_details.documents =
+            updatedVendor.bank_details.documents.map((doc) =>
+              doc.documentId === documentId ? { ...doc, isValid } : doc
+            );
+        }
+
+        // Update in categories documents
+        if (updatedVendor.categories) {
+          updatedVendor.categories = updatedVendor.categories.map(
+            (category) => ({
+              ...category,
+              subcategories: category.subcategories.map((subcategory) => ({
+                ...subcategory,
+                uploadedDocuments: subcategory.uploadedDocuments.map((doc) =>
+                  doc.id === documentId ? { ...doc, isValid } : doc
+                ),
+              })),
+            })
+          );
+        }
+
+        return updatedVendor;
+      });
+    } catch (error) {
+      console.error('Error updating document status:', error);
+      message.error('Failed to update document status');
+    }
+  };
+
+  // Handler for marking document as valid
+  const handleMarkValid = (documentId: string, documentType = 'general') => {
+    updateDocumentStatus(documentId, true, documentType);
+  };
+
+  // Handler for marking document as invalid
+  const handleMarkInvalid = (documentId: string, documentType = 'general') => {
+    updateDocumentStatus(documentId, false, documentType);
+  };
+
   const toggleSection = (section: string) => {
     setExpandedSections((prev) => ({
       ...prev,
@@ -176,7 +253,6 @@ const VendorDetail: React.FC = () => {
   const handleReject = async () => {
     try {
       setActionLoading(true);
-      // Using GET request as per your API route
       await privateApi.put(`/admin/vendor/${vendorId}/reject`);
       message.success('Vendor rejected successfully');
       setRejectModalVisible(false);
@@ -244,6 +320,28 @@ const VendorDetail: React.FC = () => {
     }
   };
 
+  // Calculate document statistics
+  const getDocumentStats = () => {
+    if (!vendor) return { total: 0, verified: 0, pending: 0, rejected: 0 };
+
+    const allDocuments = [
+      ...(vendor.documents || []),
+      ...(vendor.bank_details?.documents || []),
+      ...(vendor.categories?.flatMap((category) =>
+        category.subcategories.flatMap(
+          (subcategory) => subcategory.uploadedDocuments
+        )
+      ) || []),
+    ];
+
+    return {
+      total: allDocuments.length,
+      verified: allDocuments.filter((doc) => doc.isValid === true).length,
+      pending: allDocuments.filter((doc) => doc.isValid === undefined).length,
+      rejected: allDocuments.filter((doc) => doc.isValid === false).length,
+    };
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 p-6 flex items-center justify-center">
@@ -259,6 +357,8 @@ const VendorDetail: React.FC = () => {
       </div>
     );
   }
+
+  const documentStats = getDocumentStats();
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -304,7 +404,7 @@ const VendorDetail: React.FC = () => {
                 danger
                 icon={<CloseCircleOutlined />}
                 onClick={showRejectConfirm}
-                className="flex items-center "
+                className="flex items-center"
                 disabled={vendor.verification_status === 'rejected'}
               >
                 Reject & Send Feedback
@@ -313,7 +413,7 @@ const VendorDetail: React.FC = () => {
                 type="primary"
                 icon={<CheckCircleOutlined />}
                 onClick={showApproveConfirm}
-                className="flex items-center "
+                className="flex items-center"
                 disabled={vendor.verification_status === 'approved'}
               >
                 Approve Vendor
@@ -343,7 +443,8 @@ const VendorDetail: React.FC = () => {
             <p>Are you sure you want to approve this vendor?</p>
             <p className="font-semibold mt-2">{vendor.company_name}</p>
             <p className="text-sm text-gray-600 mt-2">
-              This action will change the vendor's status to "Approved" and they will be able to access the platform.
+              This action will change the vendor's status to "Approved" and they
+              will be able to access the platform.
             </p>
           </div>
         </Modal>
@@ -369,7 +470,8 @@ const VendorDetail: React.FC = () => {
             <p>Are you sure you want to reject this vendor?</p>
             <p className="font-semibold mt-2">{vendor.company_name}</p>
             <p className="text-sm text-gray-600 mt-2">
-              This action will change the vendor's status to "Rejected" and they will be notified about the rejection.
+              This action will change the vendor's status to "Rejected" and they
+              will be notified about the rejection.
             </p>
           </div>
         </Modal>
@@ -476,7 +578,13 @@ const VendorDetail: React.FC = () => {
                   {vendor?.documents?.map((doc, index) => (
                     <div
                       key={index}
-                      className="bg-gray-50 rounded-lg p-3 flex items-center justify-between"
+                      className={`rounded-lg p-3 flex items-center justify-between ${
+                        doc.isValid === true
+                          ? 'bg-green-50 border border-green-200'
+                          : doc.isValid === false
+                          ? 'bg-red-50 border border-red-200'
+                          : 'bg-gray-50'
+                      }`}
                     >
                       <div className="flex items-center gap-2">
                         <div className="w-8 h-8 bg-white rounded border flex items-center justify-center">
@@ -499,12 +607,36 @@ const VendorDetail: React.FC = () => {
                         >
                           <Download className="w-4 h-4 text-gray-600" />
                         </button>
-                        <span className="px-3 py-1 bg-gray-200 text-gray-700 text-xs rounded">
-                          Mark Verified
-                        </span>
-                        <span className="px-3 py-1 bg-red-100 text-red-700 text-xs rounded">
-                          Invalid
-                        </span>
+                        <button
+                          className={`px-3 py-1 text-xs rounded ${
+                            doc.isValid
+                              ? 'bg-green-100 text-green-700 border border-green-300'
+                              : 'bg-gray-200 text-gray-700'
+                          } hover:bg-green-200 transition-colors`}
+                          onClick={() =>
+                            handleMarkValid(
+                              doc.documentId || `doc_${index}`,
+                              'legal'
+                            )
+                          }
+                        >
+                          {doc.isValid ? 'Valid' : 'Mark Valid'}
+                        </button>
+                        <button
+                          className={`px-3 py-1 text-xs rounded ${
+                            doc.isValid === false
+                              ? 'bg-red-100 text-red-700 border border-red-300'
+                              : 'bg-gray-200 text-gray-700'
+                          } hover:bg-red-200 transition-colors`}
+                          onClick={() =>
+                            handleMarkInvalid(
+                              doc.documentId || `doc_${index}`,
+                              'legal'
+                            )
+                          }
+                        >
+                          {doc.isValid === false ? 'Invalid' : 'Mark Invalid'}
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -555,10 +687,31 @@ const VendorDetail: React.FC = () => {
                             {subcategory?.uploadedDocuments?.map((doc) => (
                               <div
                                 key={doc.id}
-                                className="bg-gray-50 rounded-lg p-4 flex items-center justify-between"
+                                className={`rounded-lg p-4 flex items-center justify-between ${
+                                  doc.isValid === true
+                                    ? 'bg-green-50 border border-green-200'
+                                    : doc.isValid === false
+                                    ? 'bg-red-50 border border-red-200'
+                                    : 'bg-gray-50'
+                                }`}
                               >
                                 <div className="flex items-center gap-3">
-                                  <div className="w-5 h-5 border-2 border-gray-300 rounded"></div>
+                                  <div
+                                    className={`w-5 h-5 border-2 rounded flex items-center justify-center ${
+                                      doc.isValid === true
+                                        ? 'border-green-500 bg-green-50'
+                                        : doc.isValid === false
+                                        ? 'border-red-500 bg-red-50'
+                                        : 'border-gray-300'
+                                    }`}
+                                  >
+                                    {doc.isValid === true && (
+                                      <CheckCircle className="w-3 h-3 text-green-500" />
+                                    )}
+                                    {doc.isValid === false && (
+                                      <XCircle className="w-3 h-3 text-red-500" />
+                                    )}
+                                  </div>
                                   <span className="font-medium">
                                     {doc.document_rule_name}
                                   </span>
@@ -581,12 +734,32 @@ const VendorDetail: React.FC = () => {
                                   >
                                     <Download className="w-4 h-4 text-gray-600" />
                                   </button>
-                                  <span className="px-3 py-1 bg-gray-200 text-gray-700 text-xs rounded">
-                                    Mark Verified
-                                  </span>
-                                  <span className="px-3 py-1 bg-red-100 text-red-700 text-xs rounded">
-                                    Invalid
-                                  </span>
+                                  <button
+                                    className={`px-3 py-1 text-xs rounded ${
+                                      doc.isValid
+                                        ? 'bg-green-100 text-green-700 border border-green-300'
+                                        : 'bg-gray-200 text-gray-700'
+                                    } hover:bg-green-200 transition-colors`}
+                                    onClick={() =>
+                                      handleMarkValid(doc.id, 'category')
+                                    }
+                                  >
+                                    {doc.isValid ? 'Valid' : 'Mark Valid'}
+                                  </button>
+                                  <button
+                                    className={`px-3 py-1 text-xs rounded ${
+                                      doc.isValid === false
+                                        ? 'bg-red-100 text-red-700 border border-red-300'
+                                        : 'bg-gray-200 text-gray-700'
+                                    } hover:bg-red-200 transition-colors`}
+                                    onClick={() =>
+                                      handleMarkInvalid(doc.id, 'category')
+                                    }
+                                  >
+                                    {doc.isValid === false
+                                      ? 'Invalid'
+                                      : 'Mark Invalid'}
+                                  </button>
                                 </div>
                               </div>
                             ))}
@@ -600,90 +773,130 @@ const VendorDetail: React.FC = () => {
             </div>
 
             {/* Financial & Banking Details */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold">
-                  Financial & Banking Details
-                </h2>
-                <span className="px-3 py-1 bg-green-50 text-green-700 text-sm rounded-full flex items-center gap-1">
-                  <CheckCircle className="w-4 h-4" />
-                  Bank Details Confirmed
-                </span>
-              </div>
+            {vendor?.bank_details && (
+              <div className="bg-white rounded-lg shadow-sm p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-bold">
+                    Financial & Banking Details
+                  </h2>
+                  <span className="px-3 py-1 bg-green-50 text-green-700 text-sm rounded-full flex items-center gap-1">
+                    <CheckCircle className="w-4 h-4" />
+                    Bank Details Confirmed
+                  </span>
+                </div>
 
-              <div className="grid grid-cols-2 gap-6 mb-6">
-                <div>
-                  <p className="text-gray-500 text-sm mb-1">
-                    Account Holder Name
-                  </p>
-                  <p className="font-medium">
-                    {vendor.bank_details.account_holder_name}
-                  </p>
+                <div className="grid grid-cols-2 gap-6 mb-6">
+                  <div>
+                    <p className="text-gray-500 text-sm mb-1">
+                      Account Holder Name
+                    </p>
+                    <p className="font-medium">
+                      {vendor?.bank_details?.account_holder_name || '—'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500 text-sm mb-1">
+                      Bank Name & Branch
+                    </p>
+                    <p className="font-medium">
+                      {vendor?.bank_details?.bank_name || '—'},{' '}
+                      {vendor?.bank_details?.branch_name || '—'}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-gray-500 text-sm mb-1">
-                    Bank Name & Branch
-                  </p>
-                  <p className="font-medium">
-                    {vendor.bank_details.bank_name},{' '}
-                    {vendor.bank_details.branch_name}
-                  </p>
-                </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-6 mb-6">
-                <div>
-                  <p className="text-gray-500 text-sm mb-1">Account Number</p>
-                  <p className="font-mono">
-                    **** **** ****{' '}
-                    {vendor.bank_details.account_number.slice(-4)}
-                  </p>
+                <div className="grid grid-cols-2 gap-6 mb-6">
+                  <div>
+                    <p className="text-gray-500 text-sm mb-1">Account Number</p>
+                    <p className="font-mono">
+                      {vendor?.bank_details?.account_number
+                        ? '**** **** **** ' +
+                          vendor.bank_details.account_number.slice(-4)
+                        : '—'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500 text-sm mb-1">IFSC Code</p>
+                    <p className="font-mono font-medium">
+                      {vendor?.bank_details?.ifsc_code || '—'}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-gray-500 text-sm mb-1">IFSC Code</p>
-                  <p className="font-mono font-medium">
-                    {vendor.bank_details.ifsc_code}
-                  </p>
-                </div>
-              </div>
 
-              <div>
-                <p className="text-gray-500 text-sm mb-2">Bank Account Proof</p>
-                <div className="space-y-3">
-                  {vendor?.bank_details?.documents?.map((doc, index) => (
-                    <div
-                      key={index}
-                      className="bg-green-50 rounded-lg p-4 flex items-center justify-between"
-                    >
-                      <div className="flex items-center gap-3">
-                        <CheckCircle className="w-5 h-5 text-green-600" />
-                        <span className="font-medium">{doc.filename}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          className="p-1 hover:bg-green-100 rounded"
-                          onClick={() => handleView(doc.url)}
+                {vendor?.bank_details?.documents?.length > 0 && (
+                  <>
+                    <p className="text-gray-500 text-sm mb-2">
+                      Bank Account Proof
+                    </p>
+                    <div className="space-y-3">
+                      {vendor?.bank_details?.documents?.map((doc, index) => (
+                        <div
+                          key={index}
+                          className={`rounded-lg p-4 flex items-center justify-between ${
+                            doc.isValid === true
+                              ? 'bg-green-50 border border-green-200'
+                              : doc.isValid === false
+                              ? 'bg-red-50 border border-red-200'
+                              : 'bg-green-50'
+                          }`}
                         >
-                          <Eye className="w-4 h-4 text-gray-600" />
-                        </button>
-                        <button
-                          className="p-1 hover:bg-green-100 rounded"
-                          onClick={() => handleDownload(doc.url, doc.filename)}
-                        >
-                          <Download className="w-4 h-4 text-gray-600" />
-                        </button>
-                        <span className="px-3 py-1 bg-green-600 text-white text-xs rounded">
-                          Verified
-                        </span>
-                        <span className="px-3 py-1 bg-red-100 text-red-700 text-xs rounded">
-                          Invalid
-                        </span>
-                      </div>
+                          <div className="flex items-center gap-3">
+                            <CheckCircle className="w-5 h-5 text-green-600" />
+                            <span className="font-medium">{doc.filename}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button
+                              className="p-1 hover:bg-green-100 rounded"
+                              onClick={() => handleView(doc.url)}
+                            >
+                              <Eye className="w-4 h-4 text-gray-600" />
+                            </button>
+                            <button
+                              className="p-1 hover:bg-green-100 rounded"
+                              onClick={() =>
+                                handleDownload(doc.url, doc.filename)
+                              }
+                            >
+                              <Download className="w-4 h-4 text-gray-600" />
+                            </button>
+                            <button
+                              className={`px-3 py-1 text-xs rounded ${
+                                doc.isValid
+                                  ? 'bg-green-600 text-white'
+                                  : 'bg-green-200 text-green-700'
+                              } hover:bg-green-300 transition-colors`}
+                              onClick={() =>
+                                handleMarkValid(
+                                  doc.documentId || `bank_doc_${index}`,
+                                  'bank'
+                                )
+                              }
+                            >
+                              {doc.isValid ? 'Verified' : 'Mark Verified'}
+                            </button>
+                            <button
+                              className={`px-3 py-1 text-xs rounded ${
+                                doc.isValid === false
+                                  ? 'bg-red-100 text-red-700 border border-red-300'
+                                  : 'bg-red-100 text-red-700'
+                              } hover:bg-red-200 transition-colors`}
+                              onClick={() =>
+                                handleMarkInvalid(
+                                  doc.documentId || `bank_doc_${index}`,
+                                  'bank'
+                                )
+                              }
+                            >
+                              Invalid
+                            </button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  </>
+                )}
               </div>
-            </div>
+            )}
           </div>
 
           {/* Right Column - Sidebar */}
@@ -736,45 +949,25 @@ const VendorDetail: React.FC = () => {
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">Total Documents</span>
-                  <span className="font-semibold">
-                    {vendor?.documents?.length +
-                      vendor?.bank_details?.documents?.length +
-                      vendor?.categories?.reduce(
-                        (total, category) =>
-                          total +
-                          category.subcategories.reduce(
-                            (subTotal, subcategory) =>
-                              subTotal + subcategory?.uploadedDocuments?.length,
-                            0
-                          ),
-                        0
-                      )}
-                  </span>
+                  <span className="font-semibold">{documentStats.total}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-green-600">Verified</span>
-                  <span className="font-semibold text-green-600">0</span>
+                  <span className="font-semibold text-green-600">
+                    {documentStats.verified}
+                  </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-yellow-600">Pending</span>
                   <span className="font-semibold text-yellow-600">
-                    {vendor?.documents?.length +
-                      vendor?.bank_details.documents?.length +
-                      vendor?.categories.reduce(
-                        (total, category) =>
-                          total +
-                          category.subcategories.reduce(
-                            (subTotal, subcategory) =>
-                              subTotal + subcategory?.uploadedDocuments?.length,
-                            0
-                          ),
-                        0
-                      )}
+                    {documentStats.pending}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-red-600">Rejected</span>
-                  <span className="font-semibold text-red-600">0</span>
+                  <span className="font-semibold text-red-600">
+                    {documentStats.rejected}
+                  </span>
                 </div>
               </div>
             </div>
