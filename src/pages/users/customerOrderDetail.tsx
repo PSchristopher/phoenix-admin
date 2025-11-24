@@ -36,7 +36,10 @@ interface CustomerOrdersPageProps {
   customerId?: string;
 }
 
-const CustomerOrdersPage: React.FC<CustomerOrdersPageProps> = ({ orders, customerId }) => {
+const CustomerOrdersPage: React.FC<CustomerOrdersPageProps> = ({
+  orders,
+  customerId,
+}) => {
   const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
 
   const getStatusColor = (status: string) => {
@@ -83,7 +86,7 @@ const CustomerOrdersPage: React.FC<CustomerOrdersPageProps> = ({ orders, custome
     });
   };
 
-  const formatCurrency = (amount: string, currency: string = 'INR') => {
+  const formatCurrency = (amount: string, currency = 'INR') => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
       currency: currency,
@@ -92,7 +95,8 @@ const CustomerOrdersPage: React.FC<CustomerOrdersPageProps> = ({ orders, custome
   };
 
   const getPaymentMethod = (order: Order) => {
-    const gatewayNames = order.payment_gateway_names || order.meta?.payment_gateway_names;
+    const gatewayNames =
+      order.payment_gateway_names || order.meta?.payment_gateway_names;
     if (gatewayNames && gatewayNames.length > 0) {
       return gatewayNames[0].charAt(0).toUpperCase() + gatewayNames[0].slice(1);
     }
@@ -101,7 +105,9 @@ const CustomerOrdersPage: React.FC<CustomerOrdersPageProps> = ({ orders, custome
 
   const getLeadSource = (order: Order) => {
     if (order.meta?.source_name) {
-      const source = order.meta.source_name.replace('shopify_', '').replace(/_/g, ' ');
+      const source = order.meta.source_name
+        .replace('shopify_', '')
+        .replace(/_/g, ' ');
       return source.charAt(0).toUpperCase() + source.slice(1);
     }
     return 'Online Store';
@@ -157,7 +163,9 @@ const CustomerOrdersPage: React.FC<CustomerOrdersPageProps> = ({ orders, custome
               <th className="px-6 py-3 text-left">
                 <input
                   type="checkbox"
-                  checked={selectedOrders.size === orders.length && orders.length > 0}
+                  checked={
+                    selectedOrders.size === orders.length && orders.length > 0
+                  }
                   onChange={toggleAllOrders}
                   className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                 />
@@ -207,7 +215,9 @@ const CustomerOrdersPage: React.FC<CustomerOrdersPageProps> = ({ orders, custome
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-blue-600">
-                      {order.shopify_order_name || order.meta?.name || `#${order.meta?.order_number}`}
+                      {order.shopify_order_name ||
+                        order.meta?.name ||
+                        `#${order.meta?.order_number}`}
                     </div>
                     <div className="text-xs text-gray-500">
                       #{order.shopify_order_id}
@@ -229,7 +239,11 @@ const CustomerOrdersPage: React.FC<CustomerOrdersPageProps> = ({ orders, custome
                             )}
                             <div className="text-gray-500 text-xs">
                               {item.quantity} qty
-                              {item.price && ` · ${formatCurrency(item.price, order.currency)}`}
+                              {item.price &&
+                                ` · ${formatCurrency(
+                                  item.price,
+                                  order.currency
+                                )}`}
                             </div>
                           </div>
                         </div>
@@ -249,9 +263,13 @@ const CustomerOrdersPage: React.FC<CustomerOrdersPageProps> = ({ orders, custome
                       <div className="text-gray-500 text-xs">
                         {order.shopify_order_id}
                       </div>
-                      <div className={`text-xs font-medium ${
-                        order.financial_status === 'paid' ? 'text-green-600' : 'text-orange-600'
-                      }`}>
+                      <div
+                        className={`text-xs font-medium ${
+                          order.financial_status === 'paid'
+                            ? 'text-green-600'
+                            : 'text-orange-600'
+                        }`}
+                      >
                         {order.financial_status === 'paid' ? 'Paid' : 'Pending'}
                       </div>
                     </div>
@@ -312,7 +330,8 @@ const CustomerOrdersPage: React.FC<CustomerOrdersPageProps> = ({ orders, custome
         <div className="px-6 py-4 border-t border-gray-200 bg-blue-50">
           <div className="flex items-center justify-between">
             <div className="text-sm text-gray-700">
-              {selectedOrders.size} order{selectedOrders.size > 1 ? 's' : ''} selected
+              {selectedOrders.size} order{selectedOrders.size > 1 ? 's' : ''}{' '}
+              selected
             </div>
             <div className="flex gap-2">
               <button className="px-3 py-1 text-xs bg-white border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
