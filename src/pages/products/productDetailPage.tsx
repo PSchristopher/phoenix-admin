@@ -77,8 +77,14 @@ const ProductDetailPage: React.FC = () => {
       message.success('Product approved successfully');
       setProductStatus(true);
       setRefresh(!refresh);
-    } catch {
-      message.error('Failed to approve product');
+    } catch (e: any) {
+      if (e) {
+        if (e.response) {
+          message.error(e.response.data.error);
+        }
+      } else {
+        message.error('Failed to approve product');
+      }
     } finally {
       setLoading(false);
     }

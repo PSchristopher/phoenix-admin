@@ -80,11 +80,11 @@ const ProductListPage = () => {
           setProducts(response.data.data || []);
           setPagination(
             response.data.pagination || {
-              total: response.data.data?.length || 0,
+              total: response.data.total || 0,
               page: page,
               perPage: pagination.perPage,
               totalPages: Math.ceil(
-                (response.data.data?.length || 0) / pagination.perPage
+                (response.data.total || 0) / pagination.perPage
               ),
             }
           );
@@ -194,7 +194,20 @@ const ProductListPage = () => {
       </span>
     );
   };
-
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'approved':
+        return 'bg-green-100 text-green-800';
+      case 'rejected':
+        return 'bg-red-100 text-red-800';
+      case 'submitted':
+        return 'bg-blue-100 text-blue-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
   const getStockBadge = (stock) => {
     const normalizedStock = stock?.toLowerCase();
 
@@ -240,58 +253,62 @@ const ProductListPage = () => {
   };
 
   const renderPaginationButtons = () => {
-    const buttons = [];
-    const currentPage = pagination.page;
-    const totalPages = pagination.totalPages;
+    const { page: currentPage, totalPages } = pagination;
 
+    if (totalPages <= 1) return null;
+
+    const buttons = [];
+    const maxVisiblePages = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+    const endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+    console.log(endPage, startPage, maxVisiblePages, 'fkkdkdk');
+    // Adjust start page if we're near the end
+    if (endPage - startPage + 1 < maxVisiblePages) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+
+    // Previous button
     buttons.push(
       <button
         key="prev"
         onClick={() => handlePageChange(currentPage - 1)}
         disabled={currentPage === 1}
-        className="p-2  border-0 rounded-lg  hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="p-2 border-0 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-colors"
       >
         <ChevronLeft size={18} />
       </button>
     );
 
-    if (totalPages > 0) {
+    // First page + ellipsis
+    if (startPage > 1) {
       buttons.push(
         <button
           key={1}
           onClick={() => handlePageChange(1)}
-          className={`px-4 py-2 rounded-lg text-sm font-medium border-2 border-primary ${
-            currentPage === 1
-              ? 'bg-white text-primary'
-              : ' bg-white text-primary '
-          }`}
+          className="px-4 py-2 rounded-lg text-sm border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 transition-colors"
         >
           1
         </button>
       );
+      if (startPage > 2) {
+        buttons.push(
+          <span key="dots1" className="px-2 text-gray-500">
+            ...
+          </span>
+        );
+      }
     }
 
-    if (currentPage > 3) {
-      buttons.push(
-        <span key="dots1" className="px-2">
-          ...
-        </span>
-      );
-    }
-
-    for (
-      let i = Math.max(2, currentPage - 1);
-      i <= Math.min(totalPages - 1, currentPage + 1);
-      i++
-    ) {
+    // Page numbers
+    for (let i = startPage; i <= endPage; i++) {
       buttons.push(
         <button
           key={i}
           onClick={() => handlePageChange(i)}
-          className={`px-4 py-2 rounded-lg text-sm font-medium border-2 border-primary${
+          className={`px-4 py-2 rounded-lg text-sm font-medium  transition-colors ${
             currentPage === i
-              ? 'bg-white text-primary'
-              : 'bg-white text-gray-700 hover:bg-gray-50'
+              ? 'bg-primary text-white border-primary'
+              : 'bg-white text-gray-700 border-0 hover:bg-gray-50'
           }`}
         >
           {i}
@@ -299,42 +316,43 @@ const ProductListPage = () => {
       );
     }
 
-    if (currentPage < totalPages - 2) {
-      buttons.push(
-        <span key="dots2" className="px-2">
-          ...
-        </span>
-      );
-    }
-
-    if (totalPages > 1) {
+    // Last page + ellipsis
+    if (endPage < totalPages) {
+      if (endPage < totalPages - 1) {
+        buttons.push(
+          <span key="dots2" className="px-2 text-gray-500">
+            ...
+          </span>
+        );
+      }
       buttons.push(
         <button
           key={totalPages}
           onClick={() => handlePageChange(totalPages)}
-          className={`px-4 py-2 rounded-lg text-sm font-medium border-2 border-primary ${
-            currentPage === totalPages
-              ? 'bg-white text-primary'
-              : 'bg-white text-gray-700 hover:bg-gray-50'
-          }`}
+          className="px-4 py-2 rounded-lg text-sm border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 transition-colors"
         >
           {totalPages}
         </button>
       );
     }
 
+    // Next button
     buttons.push(
       <button
         key="next"
         onClick={() => handlePageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
-        className="p-2  border-0  rounded-lg bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="p-2 border-0 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-colors"
       >
         <ChevronRight size={18} />
       </button>
     );
 
-    return buttons;
+    return (
+      <div className="flex items-center justify-center space-x-2 mt-4">
+        {buttons}
+      </div>
+    );
   };
 
   const getProductImage = (product) => {
@@ -597,7 +615,13 @@ const ProductListPage = () => {
                         {formatDate(product.createdAt || product.created_at)}
                       </td>
                       <td className="px-4 py-4">
-                        {getStatusBadge(product.status)}
+                        <span
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md  text-sm font-medium ${getStatusColor(
+                            product.status
+                          )}`}
+                        >
+                          {product.status}
+                        </span>
                       </td>
                       <td className="px-4 py-4">
                         {getStockBadge(product.stock || product.stockStatus)}
@@ -617,6 +641,7 @@ const ProductListPage = () => {
 
         <div className="rounded-b-lg  flex items-center justify-between bg-white p-4">
           <div className="text-sm text-gray-600">
+            {console.log(pagination, 'paginationpagination')}
             Total {pagination.total} items
           </div>
           <div className="flex items-center gap-2">

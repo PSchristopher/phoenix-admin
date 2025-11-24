@@ -121,7 +121,7 @@ const OrderDetailsPage = () => {
       setLoading(true);
       setError(null);
 
-      const response = await privateApi.get<OrderData>(`/admin/order/${id}`);
+      const response = await privateApi.get<OrderData>(`/admin/${id}/order`);
       console.log(response.data, 'API Response');
 
       if (response.data) {
@@ -146,7 +146,7 @@ const OrderDetailsPage = () => {
   // Convert API line items to frontend format
   const getOrderItems = (orderData: OrderData) => {
     if (!orderData.meta?.line_items) return [];
-    
+
     return orderData.meta.line_items.map((item: any, index: number) => ({
       id: item.id?.toString() || `item-${index}`,
       product_name: item.name || item.title,
@@ -275,8 +275,8 @@ const OrderDetailsPage = () => {
   };
 
   const getPaymentStatusText = (financialStatus: string) => {
-    return financialStatus === 'paid' || financialStatus === 'voided' 
-      ? 'Payment Processed' 
+    return financialStatus === 'paid' || financialStatus === 'voided'
+      ? 'Payment Processed'
       : 'Pending Payment';
   };
 
@@ -332,19 +332,21 @@ const OrderDetailsPage = () => {
 
   const orderItems = getOrderItems(order);
   const timeline = generateTimeline(order);
-  
+
   // Calculate totals safely
   const subtotal = orderItems.reduce((sum, item) => sum + item.total, 0);
   const discount = parseFloat(order.total_discount) || 0;
   const shipping = parseFloat(order.total_shipping_price) || 0;
   const total = parseFloat(order.total_price) || subtotal - discount + shipping;
 
-  const customerName = order.customer 
+  const customerName = order.customer
     ? `${order.customer.first_name} ${order.customer.last_name}`
     : order.shipping_address?.name || 'Unknown Customer';
 
-  const customerEmail = order.customer?.email || order.contact_email || 'No email';
-  const customerPhone = order.customer?.phone || order.shipping_address?.phone || 'No phone';
+  const customerEmail =
+    order.customer?.email || order.contact_email || 'No email';
+  const customerPhone =
+    order.customer?.phone || order.shipping_address?.phone || 'No phone';
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -609,14 +611,20 @@ const OrderDetailsPage = () => {
               <div className="text-sm">
                 <p className="font-medium mb-2">{customerName}</p>
                 <p className="text-gray-600">
-                  {order.shipping_address?.address1}<br />
+                  {order.shipping_address?.address1}
+                  <br />
                   {order.shipping_address?.address2 && (
                     <>
-                      {order.shipping_address.address2}<br />
+                      {order.shipping_address.address2}
+                      <br />
                     </>
                   )}
-                  {order.shipping_address?.city}, {order.shipping_address?.province}<br />
-                  {order.shipping_address?.pincode || order.shipping_address?.zip}<br />
+                  {order.shipping_address?.city},{' '}
+                  {order.shipping_address?.province}
+                  <br />
+                  {order.shipping_address?.pincode ||
+                    order.shipping_address?.zip}
+                  <br />
                   {order.shipping_address?.country}
                 </p>
               </div>

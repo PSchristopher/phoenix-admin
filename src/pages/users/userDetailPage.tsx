@@ -8,6 +8,7 @@ import { IoTicket } from 'react-icons/io5';
 import { Tabs } from 'antd';
 import type { TabsProps } from 'antd';
 import OrderDetailsPage from '../orders/orderDetailsPage';
+import CustomerOrdersPage from './customerOrderDetail';
 
 interface Customer {
   id: string;
@@ -56,6 +57,7 @@ const UserDetailPage: React.FC = () => {
   const [customerData, setCustomerData] = useState<Customer | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [customerOrders, setCustomerOrders] = useState<Order[]>([]);
 
   // ----------------------
   // Fetch Data
@@ -67,10 +69,14 @@ const UserDetailPage: React.FC = () => {
         setError(null);
 
         // Fetch customer details
-        const { data } = await privateApi.get<Customer>(`/user/${id}`);
+        const { data } = await privateApi.get<Customer>(
+          `/admin/customer/${id}`
+        );
         // const ordersResponse = await privateApi.get<Order[]>(`/api/customers/${id}/orders`);
 
-        setCustomerData(data?.data);
+        setCustomerData(data);
+        setCustomerOrders(data?.orders);
+        console.log(data, 'customer datatatat');
       } catch (err: any) {
         setError(err.message || 'Failed to fetch data');
         console.error('Error fetching data:', err);
@@ -88,7 +94,7 @@ const UserDetailPage: React.FC = () => {
     {
       key: '1',
       label: 'Order Details',
-      children: <OrderDetailsPage />,
+      children: <CustomerOrdersPage orders={customerOrders} customerId={id} />,
     },
     {
       key: '2',
