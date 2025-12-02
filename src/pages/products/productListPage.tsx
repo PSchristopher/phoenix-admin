@@ -14,6 +14,7 @@ import {
   ChevronLeft,
   ChevronRight,
   RefreshCw,
+  ChevronDown,
 } from 'lucide-react';
 import privateApi from '@/lib/http';
 import { TbDotsVertical } from 'react-icons/tb';
@@ -639,33 +640,68 @@ const ProductListPage = () => {
           </div>
         </div>
 
-        <div className="rounded-b-lg  flex items-center justify-between bg-white p-4">
-          <div className="text-sm text-gray-600">
-            {console.log(pagination, 'paginationpagination')}
-            Total {pagination.total} items
+        {/* Pagination */}
+        {pagination.totalPages > 1 && (
+          <div className="px-6 py-4 flex items-center justify-between border-t border-gray-200">
+            <div className="text-sm text-gray-600">
+              Showing {(pagination.page - 1) * pagination.perPage + 1} to{' '}
+              {Math.min(pagination.page * pagination.perPage, pagination.total)}{' '}
+              of {pagination.total} items
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={() => handlePageChange(pagination.page - 1)}
+                disabled={pagination.page === 1}
+              >
+                <ChevronDown className="w-4 h-4 rotate-90" />
+              </button>
+              {Array.from(
+                { length: Math.min(5, pagination.totalPages) },
+                (_, i) => {
+                  const pageNum = i + 1;
+                  return (
+                    <button
+                      key={pageNum}
+                      className={`px-3 py-1 rounded ${
+                        pageNum === pagination.page
+                          ? 'bg-primary text-white'
+                          : 'border border-gray-300 hover:bg-gray-50'
+                      }`}
+                      onClick={() => handlePageChange(pageNum)}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                }
+              )}
+              {pagination.totalPages > 5 && (
+                <>
+                  <span className="px-2">...</span>
+                  <button
+                    className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50"
+                    onClick={() => handlePageChange(pagination.totalPages)}
+                  >
+                    {pagination.totalPages}
+                  </button>
+                </>
+              )}
+              <button
+                className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={() => handlePageChange(pagination.page + 1)}
+                disabled={pagination.page === pagination.totalPages}
+              >
+                <ChevronDown className="w-4 h-4 -rotate-90" />
+              </button>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600">
+                {pagination.perPage} / page
+              </span>
+              <ChevronDown className="w-4 h-4 text-gray-400" />
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            {renderPaginationButtons()}
-          </div>
-          <div className="flex items-center gap-2">
-            <select
-              value={pagination.perPage}
-              onChange={(e) => {
-                setPagination((prev) => ({
-                  ...prev,
-                  perPage: Number(e.target.value),
-                }));
-                fetchProducts(1);
-              }}
-              className="ml-4 px-3 py-2 border border-gray-200 rounded-lg text-sm"
-            >
-              <option value={10}>10 / page</option>
-              <option value={25}>25 / page</option>
-              <option value={50}>50 / page</option>
-              <option value={100}>100 / page</option>
-            </select>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );

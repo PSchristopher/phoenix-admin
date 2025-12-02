@@ -82,10 +82,10 @@ const OrderListPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [pagination, setPagination] = useState({
+    total: 0,
     page: 1,
     perPage: 10,
-    total: 0,
-    totalPages: 0,
+    totalPages: 1,
   });
   const navigate = useNavigate();
 
@@ -120,18 +120,27 @@ const OrderListPage = () => {
             .length,
         };
         setStats(calculatedStats);
-
+        setPagination(
+          response.data.pagination || {
+            total: response.data.total || 0,
+            page: page,
+            perPage: pagination.perPage,
+            totalPages: Math.ceil(
+              (response.data.total || 0) / pagination.perPage
+            ),
+          }
+        );
         // Update pagination if available from API
-        if (response.data.pagination) {
-          setPagination(response.data.pagination);
-        } else {
-          setPagination((prev) => ({
-            ...prev,
-            page,
-            total: ordersData.length,
-            totalPages: Math.ceil(ordersData.length / prev.perPage),
-          }));
-        }
+        // if (response.data.pagination) {
+        //   setPagination(response.data.pagination);
+        // } else {
+        //   setPagination((prev) => ({
+        //     ...prev,
+        //     page,
+        //     total: ordersData.length,
+        //     totalPages: Math.ceil(ordersData.length / prev.perPage),
+        //   }));
+        // }
       }
     } catch (err) {
       console.error('Error fetching orders:', err);
@@ -497,7 +506,7 @@ const OrderListPage = () => {
                     {formatDate(order.created_at)}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-900">
-                    {console.log(order.customer , 'hhsdhshhsh')}
+                    {console.log(order.customer, 'hhsdhshhsh')}
                     {order?.customer?.first_name} {order?.customer?.last_name}
                   </td>
                   <td className="px-6 py-4 text-sm font-medium text-gray-900">
